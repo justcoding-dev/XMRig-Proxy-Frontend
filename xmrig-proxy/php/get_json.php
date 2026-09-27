@@ -357,9 +357,11 @@ function write_config($url, $proxy_config_data, $token){
 		if(is_array($v)){
 			foreach($v as $kk=>$vv){
 				if($vv == "false") $proxy_config_data[$k][$kk] = false; if($vv == "true")$proxy_config_data[$k][$kk] = true;
+				if(is_numeric($vv) && ctype_digit((string)$vv)) $proxy_config_data[$k][$kk] = (int)$vv;
 			}
 		}else{
 			if($v == "false") $proxy_config_data[$k] = false; if($v == "true")$proxy_config_data[$k] = true;
+			if(is_numeric($v) && ctype_digit((string)$v)) $proxy_config_data[$k] = (int)$v;
 		}
 	}
 	$proxy_config_data = json_encode($proxy_config_data);

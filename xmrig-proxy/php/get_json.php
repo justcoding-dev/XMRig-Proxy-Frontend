@@ -193,6 +193,21 @@ switch($_POST['cc'])
 		$mode = $_POST["mode"];
 		$url = "http://".$proxy_list[$proxy_id]["ip"].":".$proxy_list[$proxy_id]["port"]."/1/config";
 		$proxy_config_data = $_POST["proxy_config_data"];
+		
+		$original_config = json_decode(
+		    get_curl_data(
+		        $proxy_list[$proxy_id]["ip"],
+		        $proxy_list[$proxy_id]["port"],
+		        "config",
+		        $proxy_list[$proxy_id]["token"]
+		    ),
+		    true
+		);
+		
+		if($original_config){
+		    $proxy_config_data = restore_config_types($proxy_config_data, $original_config);
+		}
+		
 		if($mode == "switch"){
 			$summary_array = $_POST["summary_array"];
 			$new_pool = $_POST["new_pool"];
@@ -219,6 +234,24 @@ switch($_POST['cc'])
 /******************************************************************/
 /* 						FUNCTIONS								  */
 /******************************************************************/
+
+function restore_config_types($data, $original){
+    foreach($data as $k => $v){
+        if(!array_key_exists($k, $original)) continue;
+
+        if(is_array($v) && is_array($original[$k])){
+            $data[$k] = restore_config_types($v, $original[$k]);
+        }else if($v === "" && $original[$k] === null){
+            $data[$k] = null;
+        }else if(is_numeric($v) && is_int($original[$k])){
+            $data[$k] = (int)$v;
+        }else if(($v === "true" || $v === "false") && is_bool($original[$k])){
+            $data[$k] = ($v === "true");
+        }
+    }
+    return $data;
+}
+
 function get_workers_stats($proxy){
 	$myFile = "workers_$proxy.json";
 	if (file_exists($myFile)) $data = file_get_contents($myFile); else return false;
@@ -357,11 +390,9 @@ function write_config($url, $proxy_config_data, $token){
 		if(is_array($v)){
 			foreach($v as $kk=>$vv){
 				if($vv == "false") $proxy_config_data[$k][$kk] = false; if($vv == "true")$proxy_config_data[$k][$kk] = true;
-				if(is_numeric($vv) && ctype_digit((string)$vv)) $proxy_config_data[$k][$kk] = (int)$vv;
 			}
 		}else{
 			if($v == "false") $proxy_config_data[$k] = false; if($v == "true")$proxy_config_data[$k] = true;
-			if(is_numeric($v) && ctype_digit((string)$v)) $proxy_config_data[$k] = (int)$v;
 		}
 	}
 	$proxy_config_data = json_encode($proxy_config_data);
